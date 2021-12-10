@@ -154,7 +154,7 @@ end -- onDeath
 
 local function onPunch(tPos, tNode)
 
-	if 'bones:bones' ~= tNode.name then return end
+	if 'bones:bones' ~= tNode.name then return false end
 
 	local sPos = pos2string(tPos)
 
@@ -168,6 +168,8 @@ local function onPunch(tPos, tNode)
 		onSave()
 
 	end
+
+	return false
 
 end -- onPunch
 
