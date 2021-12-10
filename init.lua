@@ -5,7 +5,9 @@ local UPDATE_INTERVAL = 3
 local WAYPOINT_SATURATION = 1
 local WAYPOINT_EXPIRES_SECONDS = 42 * 60
 
+local iDeaths = 0
 local tDeaths = {}
+local sStoreID = ''
 local tColourCache = {}
 local bSkipClearOnVisit = false
 local oStore = core.get_mod_storage()
@@ -96,7 +98,7 @@ local function makeWaypoint(oPlayer, sPos, tPos)
 
 	return oPlayer:hud_add({
 		hud_elem_type = 'waypoint',
-		name = sPos,
+		name = 'Bone #' .. tostring(iDeaths) .. ' ' .. sPos,
 		text = 'm',
 		precision = 3,
 		number = 0xFF0000,
@@ -110,6 +112,7 @@ end -- makeWaypoint
 
 local function onDeath()
 
+	iDeaths = iDeaths + 1
 	local oPlayer = core.localplayer
 
 	-- get player's position
@@ -164,7 +167,7 @@ local function onUpdate()
 	if tDeaths[sPos] then
 
 		-- player is at bones -> clear the waypoint
-		player:hud_remove(tDeaths[sPos].id)
+		oPlayer:hud_remove(tDeaths[sPos].id)
 		tDeaths[sPos] = nil
 
 	end
@@ -175,9 +178,13 @@ end -- onUpdate
 local function onSave()
 
 	-- save shutdown time
-	oStore:set_int('shutdown', os.time())
+	oStore:set_int(sStoreID .. 'shutdown', os.time())
+	-- save death-count
+	oStore:set_int(sStoreID .. 'deathCount', iDeaths)
 	-- save table of waypoints
-	oStore:set_string('deaths', minetest.serialize(tDeaths))
+	oStore:set_string(sStoreID .. 'deaths', minetest.serialize(tDeaths))
+
+	print('[deathMarkers saved marker DB]')
 
 end -- onSave
 
@@ -191,10 +198,15 @@ local function onInit()
 		return
 	end
 
+	local oSI = core.get_server_info()
+	sStoreID = oPlayer:get_name() .. '-' .. oSI.ip .. ':' .. oSI.port
+
+	-- read death-count
+	iDeaths = oStore:get_int(sStoreID .. 'deathCount')
 	-- get table of saved markers
-	tDeaths = minetest.deserialize(oStore:get_string('deaths')) or {}
+	tDeaths = minetest.deserialize(oStore:get_string(sStoreID .. 'deaths')) or {}
 	-- how long between sessions
-	local iDiff = os.time() - oStore:get_int('shutdown')
+	local iDiff = os.time() - oStore:get_int(sStoreID .. 'shutdown')
 
 	for sPos, tMarker in pairs(tDeaths) do
 
@@ -206,6 +218,8 @@ local function onInit()
 	end -- loop waypoints
 
 	minetest.after(UPDATE_INTERVAL, onUpdate)
+
+	print('[deathMarkers initialized]')
 
 end -- onInit
 
@@ -225,4 +239,3 @@ core.register_chatcommand('cadw', {
 
 -- init delayed so core.localplayer exists
 minetest.after(1, onInit)
-
