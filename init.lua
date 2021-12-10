@@ -117,7 +117,7 @@ local function onSave()
 	-- save death-count
 	oStore:set_int(sStoreID .. 'deathCount', iDeaths)
 	-- save table of waypoints
-	oStore:set_string(sStoreID .. 'deaths', minetest.serialize(tDeaths))
+	oStore:set_string(sStoreID .. 'deaths', core.serialize(tDeaths))
 
 	--print('[deathMarkers saved marker DB]')
 
@@ -131,6 +131,10 @@ local function onDeath()
 
 	-- get player's position
 	local tPos = oPlayer:get_pos()
+	-- adjust position
+	tPos.x = math.floor(tPos.x + 0.5)
+	tPos.y = math.floor(tPos.y + 0.5)
+	tPos.z = math.floor(tPos.z + 0.5)
 	local sPos = pos2string(tPos)
 
 	-- make waypoint and add to table
@@ -148,9 +152,29 @@ local function onDeath()
 end -- onDeath
 
 
+local function onPunch(tPos, tNode)
+
+	if 'bones:bones' ~= tNode.name then return end
+
+	local sPos = pos2string(tPos)
+
+	if tDeaths[sPos] then
+
+		-- player punched bones -> clear the waypoint
+		core.localplayer:hud_remove(tDeaths[sPos].id)
+		tDeaths[sPos] = nil
+
+		-- and save (in case our game crashes)
+		onSave()
+
+	end
+
+end -- onPunch
+
+
 local function onUpdate()
 
-	minetest.after(UPDATE_INTERVAL, onUpdate)
+	core.after(UPDATE_INTERVAL, onUpdate)
 
 	local oPlayer = core.localplayer
 
@@ -196,7 +220,7 @@ local function onInit()
 	local oPlayer = core.localplayer
 	if not oPlayer then
 		-- onInit was called to early, try again later
-		minetest.after(1, onInit)
+		core.after(1, onInit)
 		return
 	end
 
@@ -210,7 +234,7 @@ local function onInit()
 	-- read death-count
 	iDeaths = oStore:get_int(sStoreID .. 'deathCount')
 	-- get table of saved markers
-	tDeaths = minetest.deserialize(oStore:get_string(sStoreID .. 'deaths')) or {}
+	tDeaths = core.deserialize(oStore:get_string(sStoreID .. 'deaths')) or {}
 	-- how long between sessions
 	local iDiff = os.time() - oStore:get_int(sStoreID .. 'shutdown')
 
@@ -223,7 +247,7 @@ local function onInit()
 
 	end -- loop waypoints
 
-	minetest.after(UPDATE_INTERVAL, onUpdate)
+	core.after(UPDATE_INTERVAL, onUpdate)
 
 	print('[deathMarkers initialized]')
 
@@ -235,7 +259,9 @@ core.register_on_shutdown(onSave)
 -- hook in to formspec signals to catch when 'you died' formspec is closed
 core.register_on_formspec_input(onFormInput)
 -- hook in to death event
-minetest.register_on_death(onDeath)
+core.register_on_death(onDeath)
+-- hook in to check if our bone is being dug
+core.register_on_punchnode(onPunch)
 -- add chatcommand to clear all waypoints
 core.register_chatcommand('cadw', {
 	description = 'Clears all death waypoints.',
@@ -244,4 +270,4 @@ core.register_chatcommand('cadw', {
 })
 
 -- init delayed so core.localplayer exists
-minetest.after(1, onInit)
+core.after(1, onInit)
