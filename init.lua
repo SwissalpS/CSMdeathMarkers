@@ -110,6 +110,20 @@ local function makeWaypoint(oPlayer, sPos, tPos)
 end -- makeWaypoint
 
 
+local function onSave()
+
+	-- save shutdown time
+	oStore:set_int(sStoreID .. 'shutdown', os.time())
+	-- save death-count
+	oStore:set_int(sStoreID .. 'deathCount', iDeaths)
+	-- save table of waypoints
+	oStore:set_string(sStoreID .. 'deaths', minetest.serialize(tDeaths))
+
+	--print('[deathMarkers saved marker DB]')
+
+end -- onSave
+
+
 local function onDeath()
 
 	iDeaths = iDeaths + 1
@@ -128,6 +142,8 @@ local function onDeath()
 
 	-- mark player as dead
 	bSkipClearOnVisit = true
+
+	onSave()
 
 end -- onDeath
 
@@ -175,20 +191,6 @@ local function onUpdate()
 end -- onUpdate
 
 
-local function onSave()
-
-	-- save shutdown time
-	oStore:set_int(sStoreID .. 'shutdown', os.time())
-	-- save death-count
-	oStore:set_int(sStoreID .. 'deathCount', iDeaths)
-	-- save table of waypoints
-	oStore:set_string(sStoreID .. 'deaths', minetest.serialize(tDeaths))
-
-	print('[deathMarkers saved marker DB]')
-
-end -- onSave
-
-
 local function onInit()
 
 	local oPlayer = core.localplayer
@@ -199,7 +201,11 @@ local function onInit()
 	end
 
 	local oSI = core.get_server_info()
-	sStoreID = oPlayer:get_name() .. '-' .. oSI.ip .. ':' .. oSI.port
+	sStoreID = oPlayer:get_name()
+	-- in singleplayer mode the port changes
+	if 'singleplayer' ~= sStoreID then
+		sStoreID = sStoreID .. '-' .. oSI.ip .. ':' .. oSI.port
+	end
 
 	-- read death-count
 	iDeaths = oStore:get_int(sStoreID .. 'deathCount')
