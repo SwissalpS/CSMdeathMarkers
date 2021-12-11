@@ -1,3 +1,4 @@
+[![ContentDB](https://content.minetest.net/packages/SwissalpS/deathmarkers/shields/downloads/)](https://content.minetest.net/packages/SwissalpS/deathmarkers/)
 # CSM Death Markers
 Minetest Client Side Mod that shows waypoints to where player has died.
 
