@@ -1,4 +1,4 @@
-# CSMdeathMarkers
+# CSM Death Markers
 Minetest Client Side Mod that shows waypoints to where player has died. The waypoints change colour and fade over time.
 The waypoints are stored over sessions per player and server.
 
